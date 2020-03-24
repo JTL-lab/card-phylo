@@ -12,12 +12,17 @@ def run():
                     help="Folder to output family sequences")
     args = parser.parse_args()
 
+    #cluster_fasta = snakemake.input[0]
+    #output_folder = "seqs/clustered"
+    if not os.path.exists(args.output_folder):
+        os.mkdir(args.output_folder)
+
     cluster_seqs = []
     out_fh = None
     cluster = 0
     num_seqs = 0
 
-    singleton_record = open(os.path.join(args.output_folder, 'singleton.txt'), 'w')
+    singleton_record = open(os.path.join(args.output_folder, 'singletons.txt'), 'w')
     for record in SeqIO.parse(args.cluster_fasta, 'fasta'):
         if len(record.seq) == 0:
             if out_fh:
@@ -30,7 +35,7 @@ def run():
                 cluster_seqs = []
                 num_seqs = 0
                 out_fh.close()
-            out_fh = open(os.path.join(args.output_folder, str(cluster) + ".fasta"), 'w')
+            out_fh = open(os.path.join(args.output_folder, str(cluster) + ".faa"), 'w')
         else:
             cluster_seqs.append(record)
             num_seqs += 1

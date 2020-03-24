@@ -2,7 +2,6 @@
 # In case of sample based data, it should be complemented by a samples.tsv file that contains
 # one row per sample. It can be parsed easily via pandas.
 
-threads_per_job: 1
-cluster_identity: 0.9
+threads_per_job: 10
 canonical_version: 3.0.8
 prevalence_version: 3.0.6

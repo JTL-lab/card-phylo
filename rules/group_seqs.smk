@@ -12,19 +12,30 @@
 #        python scripts/dump_to_gene_family_fasta.py {input.card_json} {input.prevalence} seqs/families
 #        touch seqs/families/dumped.txt
 #        """
-
-rule cluster_by_identity:
+rule cluster_by_mmseq:
     input:
-        concatenated = "seqs/protein_homogs.fasta"
+        "seqs/protein_homogs.fasta"
     output:
-        dynamic("seqs/clustered/{clusterid}.fasta")
+        "seqs/clustered/mmseqs/amr_clusters_all_seqs.fasta"
     params:
         threads = config['threads_per_job'],
-    message:
-        f"Clustering Protein Sequences with MMSEQS2"
+    conda: 
+        "envs/card-phylo.yml"
+    log:
+        "logs/mmseq.log"
     shell:  
         """
-        mkdir -p seqs/clustered/mmseqs/tmp
-        mmseqs easy-cluster --threads {params.threads} {input.concatenated} seqs/clustered/mmseqs/amr_clusters seqs/clustered/mmseqs/tmp 2>&1 > /dev/null
-        python ../scripts/write_mmseqs_clusters.py seqs/clustered/mmseqs/amr_clusters_all_seqs.fasta seqs/clustered 2>&1 > /dev/null
+        mmseqs easy-cluster --remove-tmp-files 1 --threads {params.threads} {input} seqs/clustered/mmseqs/amr_clusters seqs/clustered/mmseqs/tmp 2>&1 > {log}
         """
+
+checkpoint write_mmseq_clusters:
+    input:
+        "seqs/clustered/mmseqs/amr_clusters_all_seqs.fasta"
+    output:
+        directory("seqs/clustered/mmseqs/non_singletons")
+    conda: 
+        "envs/card-phylo.yml"
+    log:
+        "logs/mmseq_cluster_singletons.log"  
+    shell:
+        "python ../scripts/write_mmseqs_clusters.py {input} seqs/clustered/mmseqs/non_singletons > {log}"

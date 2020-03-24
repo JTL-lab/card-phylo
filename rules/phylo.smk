@@ -1,16 +1,15 @@
 rule align:
     input:
-        dynamic("seqs/clustered/{clusterid}.fasta")
+        "seqs/clustered/mmseqs/non_singletons/{clusterid}.faa"
     output:
         "align/{clusterid}.afa"
     log:
         "logs/{clusterid}.log"
-    message:
-        "Aligning sequences"
+    conda: 
+        "envs/card-phylo.yml"
     shell:
         """
-        mkdir -p align
-        mafft --auto {input} > {output} 2>&1 >> {log}
+        mafft --auto {input} > {output} 2> {log}
         """
 
 rule trim:
@@ -20,33 +19,45 @@ rule trim:
         "trim/{clusterid}.afa"
     log:
         "logs/{clusterid}.log"
-    message:
-        "Trimming alignments"
+    conda: 
+        "envs/card-phylo.yml"
     shell:
         """
-        mkdir -p trim
-        trimal -in {input} -out {output} -automated1 2>&1 >> {log}"
+        trimal -keepheader -in {input} -out {output} -automated1 2> {log}
         """
 
 rule phylo:
     input:
         "trim/{clusterid}.afa"
     output:
-        "phylo/{clusterid}.tree"
+        "phylo/{clusterid}.treefile"
     log:
-        "logs/{clusterid}.log"
-    message:
-        "Inferring ML Phylogeny"
+        "phylo/{clusterid}.iqtree"
+    conda: 
+        "envs/card-phylo.yml"
     shell:
         """
-        mkdir -p phylo
-        fasttree {input} > {output} 2>&1 >> {log}
+        iqtree -m LG+G -s {input} -pre phylo/{wildcards.clusterid} -bb 1000
         """
+
+
+def aggregate_trees(wildcards):
+    """
+    Aggregate the tree names
+    """
+    checkpoint_output = checkpoints.write_mmseq_clusters.get(**wildcards).output[0]
+    return expand('phylo/{clusterid}.treefile',
+                   clusterid=glob_wildcards(os.path.join(checkpoint_output, '{clusterid}.faa')).clusterid)
+
 
 rule summary:
     input:
-        dynamic("phylo/{clusterid}.tree")
+        aggregate_trees
     output:
-        "done"
+        "pipeline_complete.txt"
+    conda: 
+        "envs/card-phylo.yml"
+    log:
+        "logs/summarise_phylo.log"
     shell:
-        "touch done"
+        "touch pipeline_complete.txt"
