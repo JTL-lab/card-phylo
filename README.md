@@ -1,10 +1,9 @@
-# Snakemake workflow: card-phylo
+# CARD-phylo
 
 [![Snakemake](https://img.shields.io/badge/snakemake-≥5.0.0-brightgreen.svg)](https://snakemake.bitbucket.io)
 [![Build Status](https://travis-ci.org/snakemake-workflows/card-phylo.svg?branch=master)](https://travis-ci.org/snakemake-workflows/card-phylo)
 
-This is the template for a new Snakemake workflow. Replace this text with a comprehensive description covering the purpose and domain.
-Insert your code into the respective folders, i.e. `scripts`, `rules`, and `envs`. Define the entry point of the workflow in the `Snakefile` and the main configuration in the `config.yaml` file.
+This is a workflow to generate reference phylogenies for all AMR sequences in CARD canonical and prevalence.
 
 Note the LICENSE file only refers to the workflow in this repository for licensing related to using CARD please visit the [website](https://card.mcmaster.ca/about).
 
@@ -25,21 +24,28 @@ Additionally if you make use of this please cite:
 If you simply want to use this workflow, download and extract the [latest release](https://github.com/snakemake-workflows/card-phylo/releases).
 If you intend to modify and further extend this workflow or want to work under version control, fork this repository as outlined in [Advanced](#advanced). The latter way is recommended.
 
-In any case, if you use this workflow in a paper, don't forget to give credits to the authors by citing the URL of this repository and, if available, its DOI (see above).
+#### Step 2: Install and activate the conda environment
 
-#### Step 2: Configure workflow
+While you can set up individual envs for each rule this is a simple pipeline so we just have one big env.
+
+`conda env create -f envs/card-phylo.yml`
+`conda activate card-phylo`
+
+#### Step 3: Configure workflow
 
 Configure the workflow according to your needs via editing the file `config.yaml`.
 
-#### Step 3: Execute workflow
+Main options are changing the version of CARD canonical/CARD prevalence and changing the cluster threshold proportion ID%.
+
+#### Step 4: Execute workflow
 
 Test your configuration by performing a dry-run via
 
-    snakemake --use-conda -n
+    snakemake -cores $N -n
 
 Execute the workflow locally via
 
-    snakemake --use-conda --cores $N
+    snakemake --cores $N
 
 using `$N` cores or run it in a cluster environment via
 
@@ -56,7 +62,7 @@ If you not only want to fix the software stack but also the underlying OS, use
 in combination with any of the modes above.
 See the [Snakemake documentation](https://snakemake.readthedocs.io/en/stable/executable.html) for further details.
 
-# Step 4: Investigate results
+# Step 5: Investigate results
 
 After successful execution, you can create a self-contained interactive HTML report with all results via:
 
