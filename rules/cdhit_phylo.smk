@@ -1,10 +1,10 @@
-rule align:
+rule cdhit_align:
     input:
-        "seqs/clustered/mmseqs/non_singletons/{clusterid}.faa"
+        "seqs/clustered/cdhit/non_singletons/{clusterid}.faa"
     output:
-        "align/{clusterid}.afa"
+        "align/cdhit/{clusterid}.afa"
     log:
-        "logs/{clusterid}.log"
+        "logs/cdhit_{clusterid}.log"
     conda: 
         "envs/card-phylo.yml"
     shell:
@@ -12,13 +12,13 @@ rule align:
         mafft --auto {input} > {output} 2> {log}
         """
 
-rule trim:
+rule cdhit_trim:
     input:
-        "align/{clusterid}.afa"
+        "align/cdhit/{clusterid}.afa"
     output:
-        "trim/{clusterid}.afa"
+        "trim/cdhit/{clusterid}.afa"
     log:
-        "logs/{clusterid}.log"
+        "logs/cdhit_{clusterid}.log"
     conda: 
         "envs/card-phylo.yml"
     shell:
@@ -26,13 +26,13 @@ rule trim:
         trimal -keepheader -in {input} -out {output} -automated1 2> {log}
         """
 
-rule phylo:
+rule cdhit_phylo:
     input:
-        "trim/{clusterid}.afa"
+        "trim/cdhit/{clusterid}.afa"
     output:
-        "phylo/{clusterid}.treefile"
+        "phylo/cdhit/{clusterid}.treefile"
     log:
-        "phylo/{clusterid}.iqtree"
+        "phylo/cdhit/{clusterid}.iqtree"
     conda: 
         "envs/card-phylo.yml"
     shell:
@@ -41,23 +41,23 @@ rule phylo:
         """
 
 
-def aggregate_trees(wildcards):
+def cdhit_aggregate_trees(wildcards):
     """
     Aggregate the tree names
     """
-    checkpoint_output = checkpoints.write_mmseq_clusters.get(**wildcards).output[0]
-    return expand('phylo/{clusterid}.treefile',
+    checkpoint_output = checkpoints.write_cdhit_clusters.get(**wildcards).output[0]
+    return expand('phylo/cdhit/{clusterid}.treefile',
                    clusterid=glob_wildcards(os.path.join(checkpoint_output, '{clusterid}.faa')).clusterid)
 
 
-rule summary:
+rule cdhit_phylo:
     input:
-        aggregate_trees
+        cdhit_aggregate_trees
     output:
-        "pipeline_complete.txt"
+        "cdhit_pipeline_complete.txt"
     conda: 
         "envs/card-phylo.yml"
     log:
-        "logs/summarise_phylo.log"
+        "logs/cdhit_phylo.log"
     shell:
-        "touch pipeline_complete.txt"
+        "touch {output}"

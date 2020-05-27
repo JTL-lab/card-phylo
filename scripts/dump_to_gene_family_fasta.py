@@ -221,11 +221,11 @@ class CARD():
 
 def run():
     parser = argparse.ArgumentParser(description='Organise CARD sequences by annotated family.')
-    parser.add_argument('card_json', type=str, required=True,
+    parser.add_argument('-c', '--card_json', type=str, required=True,
                     help="Path to CARD canonical CARD.json file")
-    parser.add_argument('prevalence_fasta' type=str, required=True,
+    parser.add_argument('-p', '--prevalence_fasta', type=str, required=True,
                     help="Path to CARD prevalence protein homolog variants fasta")
-    parser.add_argument('output_folder' type=str, required=True,
+    parser.add_argument('-o', '--output_folder', type=str, required=True,
                     help="Folder to output family sequences")
     args = parser.parse_args()
 

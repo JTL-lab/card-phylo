@@ -6,14 +6,12 @@ from Bio import SeqIO
 
 def run():
     parser = argparse.ArgumentParser(description='Write mmseq sequence cluster files and dump singeltons.')
-    parser.add_argument('cluster_fasta', type=str,
+    parser.add_argument('-c', '--cluster_fasta', type=str, required=True,
                     help="Path to MMSEQS2 easy-cluster fasta")
-    parser.add_argument('output_folder', type=str,
+    parser.add_argument('-o', '--output_folder', type=str, required=True,
                     help="Folder to output family sequences")
     args = parser.parse_args()
 
-    #cluster_fasta = snakemake.input[0]
-    #output_folder = "seqs/clustered"
     if not os.path.exists(args.output_folder):
         os.mkdir(args.output_folder)
 
