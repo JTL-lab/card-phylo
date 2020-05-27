@@ -108,10 +108,12 @@ checkpoint write_mmseqs_clusters:
         "seqs/mmseqs_clusters/amr_clusters_all_seqs.fasta"
     output:
         cluster_dir = directory("seqs/mmseqs_clusters/non_singleton_clusters")
+    log:
+        "logs/mmseq_cluster_splitting.log"
     #conda: 
     #    "../envs/card-phylo.yml"
     shell:
-        "python ../scripts/write_mmseqs_clusters.py -c {input} -o {output.cluster_dir}"
+        "python ../scripts/write_mmseqs_clusters.py -c {input} -o {output.cluster_dir} 2>&1 > {log}"
 
 rule mmseqs_align:
     input:
@@ -152,7 +154,7 @@ rule mmseqs_tree:
     #    "envs/card-phylo.yml"
     shell:
         """
-        iqtree -m LG+G -s {input} -pre seqs/clustered/mmseqs/phylo/{wildcards.clusterid} -bb 1000 2>&1 > {log}
+        iqtree -m LG+G -s {input} -pre phylo/mmseqs_{wildcards.clusterid} -bb 1000 2>&1 > {log}
         """
 
 
