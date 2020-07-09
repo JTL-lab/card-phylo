@@ -24,16 +24,15 @@ Additionally if you make use of this please cite:
 If you simply want to use this workflow, download and extract the [latest release](https://github.com/snakemake-workflows/card-phylo/releases).
 If you intend to modify and further extend this workflow or want to work under version control, fork this repository as outlined in [Advanced](#advanced). The latter way is recommended.
 
-#### Step 2: Install and activate the conda environment
+#### Step 2: Install dependencies
 
-While you can set up individual envs for each rule this is a simple pipeline so we just have one big env.
+To run this you must have a newish [snakemake](https://snakemake.readthedocs.io/en/stable/) (>5.11) and [conda](https://docs.conda.io/en/latest/miniconda.html) available in your path.
 
-`conda env create -f envs/card-phylo.yml`
-`conda activate card-phylo`
+This workflow has only been tested on linux systems, it should work on OSX and hopefully windows but no guarantees.
 
-#### Step 3: Configure workflow
+#### Step 2: Configure workflow
 
-Configure the workflow according to your needs via editing the file `config.yaml`.
+Configure the workflow according to your needs via editing the file `config/config.yaml`.
 
 Main options are changing the version of CARD canonical/CARD prevalence and changing the cluster threshold proportion ID%.
 
@@ -41,11 +40,11 @@ Main options are changing the version of CARD canonical/CARD prevalence and chan
 
 Test your configuration by performing a dry-run via
 
-    snakemake -cores $N -n
+    snakemake --use-conda -cores $N -n
 
 Execute the workflow locally via
 
-    snakemake --cores $N
+    snakemake --use-conda --cores $N
 
 using `$N` cores or run it in a cluster environment via
 
@@ -55,20 +54,51 @@ or
 
     snakemake --use-conda --drmaa --jobs 100
 
-If you not only want to fix the software stack but also the underlying OS, use
+#### Output 
 
-    snakemake --use-conda --use-singularity
-
-in combination with any of the modes above.
-See the [Snakemake documentation](https://snakemake.readthedocs.io/en/stable/executable.html) for further details.
-
-# Step 5: Investigate results
-
-After successful execution, you can create a self-contained interactive HTML report with all results via:
-
-    snakemake --report report.html
-
-This report can, e.g., be forwarded to your collaborators.
+    card-phylo_canonical_3.0.9_prevalence_3.0.7/
+    ├── card
+    │   ├── canonical
+    │   │   └── 3.0.9
+    │   │       ├── card.json
+    │   │       ├── protein_fasta_protein_homolog_model.fasta
+    │   │       ├── protein_fasta_protein_knockout_model.fasta
+    │   │       ├── protein_fasta_protein_overexpression_model.fasta
+    │   │       └── protein_fasta_protein_variant_model.fasta
+    │   └── prevalence
+    │       └── 3.0.7
+    │           ├── protein_fasta_protein_homolog_model_variants.fasta
+    │           ├── protein_fasta_protein_overexpression_model_variants.fasta
+    │           └── protein_fasta_protein_variant_model_variants.fasta
+    ├── card_protein.fasta
+    ├── curated_amr_gene_families
+    │   ├── seqs
+    │   │   ├── non_singleton_clusters
+    │   │   │   └── TEM_beta-lactamase.faa
+    │   │   └── singletons
+    │   │       └── Zoliflodacin_resistant_gyrB.faa
+    │   ├── align
+    │   │   └── TEM_beta-lactamase.afa
+    │   ├── trim 
+    │   │   └── TEM_beta-lactamase.afa
+    │   └── phylo
+    │       └── TEM_beta-lactamase.treefile
+    ├── mmseqs_0            # final digit indicates clustering %id
+    │   ├── seqs
+    │   │   └── non_singleton_clusters
+    |   |       ├── phylo_singletons.txt
+    │   │       └── 1.faa
+    │   ├── align
+    │   │   └── 1.afa
+    │   ├── trim 
+    │   │   └── 1.afa
+    │   └── phylo
+    │       └── 1.treefile
+    ├── mmseqs_70
+    ├── mmseqs_80
+    ├── mmseqs_90
+    ├── mmseqs_95
+    └── logs
 
 ### Advanced
 
@@ -85,7 +115,24 @@ The following recipe provides established best practices for running and extendi
 9. Optional: Create a self-contained workflow archive for publication along with the paper (snakemake --archive).
 10. Optional: Delete the local clone/workdir to free space.
 
+### Future development 
 
-## Testing
+#### Containerisation
 
-Tests cases are in the subfolder `.test`. They are automtically executed via continuous integration with Travis CI.
+If you wish to run this in a container (i.e. --use-singularity) please also install [singularity](https://sylabs.io/docs/#singularity)
+
+If you not only want to fix the software stack but also the underlying OS, use
+
+    snakemake --use-conda --use-singularity 
+
+in combination with any of the modes above.
+See the [Snakemake documentation](https://snakemake.readthedocs.io/en/stable/executable.html) for further details.
+
+#### Report Generation
+After successful execution, you can create a self-contained interactive HTML report with all results via:
+
+    snakemake --report report.html
+
+This report can, e.g., be forwarded to your collaborators.
+
+

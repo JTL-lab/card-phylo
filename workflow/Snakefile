@@ -1,8 +1,11 @@
 # The main entry point of your workflow.
 # After configuring, running snakemake -n in a clone of this repository should successfully execute a dry-run of the workflow.
-configfile: "config.yaml"
+configfile: "config/config.yaml"
 report: "report/workflow.rst"
 workdir: f"card-phylo_canonical_{config['canonical_version']}_prevalence_{config['prevalence_version']}"
+
+# will only be used if singularity is installed and --use-singularity flag is provided
+container: "docker://continuumio/miniconda3:4.8.2"
 
 #rule all:
 #    input:
@@ -12,8 +15,8 @@ workdir: f"card-phylo_canonical_{config['canonical_version']}_prevalence_{config
 rule all:
     input:
         "card_protein.fasta",
-        "family_complete.txt"
-        #"mmseqs_complete.txt"
+        "family_complete.txt",
+        "mmseqs_complete.txt"
 
 ############################## Download and Parse CARD Databases ##############################
 rule extract_card:
@@ -245,7 +248,7 @@ checkpoint write_mmseqs_0_clusters:
     conda: 
         "envs/card-phylo.yml"
     shell:
-        "python ../scripts/write_mmseqs_clusters.py -c {input} -o {output.cluster_dir} 2>&1 > {log}"
+        "python ../workflow/scripts/write_mmseqs_clusters.py -c {input} -o {output.cluster_dir} 2>&1 > {log}"
 
 def aggregate_mmseqs_0_phylo(wildcards):
     checkpoint_output = checkpoints.write_mmseqs_0_clusters.get(**wildcards).output[0]
@@ -262,7 +265,7 @@ checkpoint write_mmseqs_70_clusters:
     conda: 
         "envs/card-phylo.yml"
     shell:
-        "python ../scripts/write_mmseqs_clusters.py -c {input} -o {output.cluster_dir} 2>&1 > {log}"
+        "python ../workflow/scripts/write_mmseqs_clusters.py -c {input} -o {output.cluster_dir} 2>&1 > {log}"
 
 def aggregate_mmseqs_70_phylo(wildcards):
     checkpoint_output = checkpoints.write_mmseqs_70_clusters.get(**wildcards).output[0]
@@ -279,7 +282,7 @@ checkpoint write_mmseqs_80_clusters:
     conda: 
         "envs/card-phylo.yml"
     shell:
-        "python ../scripts/write_mmseqs_clusters.py -c {input} -o {output.cluster_dir} 2>&1 > {log}"
+        "python ../workflow/scripts/write_mmseqs_clusters.py -c {input} -o {output.cluster_dir} 2>&1 > {log}"
 
 def aggregate_mmseqs_80_phylo(wildcards):
     checkpoint_output = checkpoints.write_mmseqs_80_clusters.get(**wildcards).output[0]
@@ -296,7 +299,7 @@ checkpoint write_mmseqs_90_clusters:
     conda: 
         "envs/card-phylo.yml"
     shell:
-        "python ../scripts/write_mmseqs_clusters.py -c {input} -o {output.cluster_dir} 2>&1 > {log}"
+        "python ../workflow/scripts/write_mmseqs_clusters.py -c {input} -o {output.cluster_dir} 2>&1 > {log}"
 
 def aggregate_mmseqs_90_phylo(wildcards):
     checkpoint_output = checkpoints.write_mmseqs_90_clusters.get(**wildcards).output[0]
@@ -313,25 +316,24 @@ checkpoint write_mmseqs_95_clusters:
     conda: 
         "envs/card-phylo.yml"
     shell:
-        "python ../scripts/write_mmseqs_clusters.py -c {input} -o {output.cluster_dir} 2>&1 > {log}"
+        "python ../workflow/scripts/write_mmseqs_clusters.py -c {input} -o {output.cluster_dir} 2>&1 > {log}"
 
 def aggregate_mmseqs_95_phylo(wildcards):
     checkpoint_output = checkpoints.write_mmseqs_95_clusters.get(**wildcards).output[0]
     return expand("mmseqs_95/phylo/{i}.treefile",
     i=glob_wildcards(os.path.join(checkpoint_output, "{i}.faa")).i)
 
-#rule mmseqs:
-#    input:
-#        aggregate_mmseqs_0_phylo,
-#        aggregate_mmseqs_70_phylo,
-#        aggregate_mmseqs_80_phylo,
-#        aggregate_mmseqs_90_phylo,
-#        aggregate_mmseqs_95_phylo
-#    output:
-#        "mmseqs_complete.txt"
-#    shell:
-#        "touch {output}"
-
+rule mmseqs:
+    input:
+        aggregate_mmseqs_0_phylo,
+        aggregate_mmseqs_70_phylo,
+        aggregate_mmseqs_80_phylo,
+        aggregate_mmseqs_90_phylo,
+        aggregate_mmseqs_95_phylo
+    output:
+        "mmseqs_complete.txt"
+    shell:
+        "touch {output}"
 
 
 ###################### Family Grouping ########################################
@@ -355,8 +357,7 @@ checkpoint organise_by_family:
         "logs/curated_amr_gene_families/family_splitting.log"
     shell:
         """
-        mkdir -p curated_amr_gene_families/seqs/families
-        python ../scripts/dump_to_gene_family_fasta.py -c {input.card_json} -p {params.prev_prefix} -o {params.out_prefix} > {log}
+        python ../workflow/scripts/dump_to_gene_family_fasta.py -c {input.card_json} -p {params.prev_prefix} -o {params.out_prefix} > {log}
         """
 
 def aggregate_family_phylo(wildcards):
