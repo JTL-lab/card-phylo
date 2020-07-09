@@ -4,8 +4,8 @@ channels:
   - conda-forge
   - defaults
 dependencies:
-  - mafft=7.455=h516909a_0
-  - trimal=1.4.1=h6bb024c_3
-  - cd-hit=4.8.1=h8b12597_3
-  - mmseqs2=11.e1a1c=h2d02072_0
-  - biopython=1.76=py36h516909a_0
+  - mafft=7.471
+  - trimal=1.4.1
+  - mmseqs2=11.e1a1c-0
+  - biopython=1.70
+  - iqtree=2.0.3
