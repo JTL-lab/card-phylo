@@ -20,7 +20,9 @@ class CARD():
             del self.card['_timestamp']
             del self.card['_comment']
 
-            self.supported_models = ['protein homolog model']
+            self.supported_models = ['protein homolog model',
+                                     'protein variant model',
+                                     'protein overexpression model']
             self.proteins, self.nucleotides = self.get_sequences()
             self.aro_to_gene_family = self.build_aro_to_gene_family()
             self.gene_family_to_aro = self.build_gene_family_to_aro()
@@ -46,66 +48,31 @@ class CARD():
             # for now we are just using the cluster level and will deal with
             # the specifics at ARO level.
             if "glycopeptide resistance gene cluster" in gene_families:
-                gene_families = ['glycopeptide resistance gene cluster']
+                gene_families.remove('glycopeptide resistance gene cluster')
 
-            # this is a fusion protein so can be assigned to a new class
-            if ARO_acc == '3002598':
-                gene_families = ["AAC(6')_ANT(3'')"]
-            if ARO_acc == '3002597':
-                gene_families = ["APH(2'')_AAC(6')"]
-            if ARO_acc in ['3002546', '3002600']:
+            # these all seem to be fusions so assigning a fusion class
+            if 'AAC(3)' in gene_families and "AAC(6')" in gene_families:
                 gene_families = ["AAC(3)_AAC(6')"]
+
+            if "APH(2'')" in gene_families and "AAC(6')" in gene_families:
+                gene_families = ["APH(2'')_AAC(6')"]
+
+            if "ANT(3'')" in gene_families and "AAC(6')" in gene_families:
+                gene_families = ["ANT(3'')_AAC(6')"]
 
             # also a fusion so assigned a new fusion class
             if 'class C LRA beta-lactamase' in gene_families and \
                     'class D LRA beta-lactamase' in gene_families:
                 gene_families = ['class D/class C beta-lactamase fusion']
 
-            # 23S with multiple resistance classes
-            if ARO_acc == '3004181':
-                gene_families = ['23S rRNA with mutation conferring resistance '
-                                 'to macrolide and streptogramins antibiotics']
-
-            # additional self-resistance class to indicate resistance genes made by
-            # antibiotic producer removing the self resistant term
-            if "fluoroquinolone resistant parC" in gene_families and \
-                    "fluoroquinolone self resistant parC" in gene_families:
-                gene_families = ['fluoroquinolone resistant parC']
-
-            if "kirromycin self resistant EF-Tu" in gene_families and \
-                    'elfamycin resistant EF-Tu' in gene_families:
-                gene_families = ['elfamycin resistant EF-Tu']
-
-            if 'aminocoumarin self resistant parY' in gene_families and \
-                    'aminocoumarin resistant parY' in gene_families:
-                gene_families = ['aminocoumarin resistant parY']
-
-            # efflux components
-            if ARO_acc in ['3000263', '3000833', '3003382', '3000832',
-                           '3000815', '3003896', '3000823', '3003511',
-                           '3003381', '3000817', '3003895', '3000676',
-                           '3003383', '3003585', '3004107', '3003820']:
+            ## efflux components
+            if ARO_acc in ['300815','3000832', '3000676', '3000833', '3000263',
+                            '3000817', '3003585', '3003381','3003511', '3003383',
+                            '3003382', '3003896', '3003895', '3004107', '3000815',
+                            '3000823']:
                 gene_families = ['efflux regulator']
             if ARO_acc == '3000237':
                 gene_families = ['efflux component']
-
-
-            # They are homologous parts of topo IV and II but it looks like this is actually parC
-            if 'fluoroquinolone resistant parC' in gene_families and \
-                    'fluoroquinolone resistant gyrA' in gene_families:
-                gene_families = ['fluoroquinolone resistant parC']
-
-
-            # things that need fixed
-            # this looks like a mistake and is only UhpA
-            if 'UhpT' in gene_families and 'UhpA' in gene_families:
-                gene_families = ['UhpA']
-
-            # missing families
-            if ARO_acc == "3004450":
-                gene_families = ['TRU beta-lactamase']
-            if ARO_acc == "3004294":
-                gene_families = ['BUT beta-lactamase']
 
             aro_to_gene_family.update({ARO_acc: gene_families})
 
@@ -224,7 +191,7 @@ def run():
     parser.add_argument('-c', '--card_json', type=str, required=True,
                     help="Path to CARD canonical CARD.json file")
     parser.add_argument('-p', '--prevalence_fasta', type=str, required=True,
-                    help="Path to CARD prevalence protein homolog variants fasta")
+                    help="Path to CARD prevalence folder")
     parser.add_argument('-o', '--output_folder', type=str, required=True,
                     help="Folder to output family sequences")
     args = parser.parse_args()
