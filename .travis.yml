@@ -17,10 +17,11 @@ install:
   - conda config --add channels conda-forge
   - conda config --add channels bioconda
   # create snakemake env
-  - conda create -q -n snakemake snakemake python=$TRAVIS_PYTHON_VERSION
+  - conda create -q -n snakemake snakemake>=5.11.2 python=$TRAVIS_PYTHON_VERSION
   # add additional stuff to setup below
 
 script:
   - source activate snakemake
+  - ls
   # run the workflow
   - snakemake --use-conda --cores 1 --dryrun
