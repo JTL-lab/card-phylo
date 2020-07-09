@@ -2,13 +2,15 @@
 import json
 import os
 import argparse
+import glob
 from Bio import SeqIO
+import shlex
 
 class CARD():
     """
     Parser for the CARD database
     """
-    def __init__(self, card_json_fp, rrna=False):
+    def __init__(self, card_json_fp, output_folder, rrna=False):
         with open(card_json_fp) as fh:
             with open(card_json_fp) as fh:
                 self.card = json.load(fh)
@@ -19,6 +21,8 @@ class CARD():
             del self.card['_version']
             del self.card['_timestamp']
             del self.card['_comment']
+
+            self.output_folder = output_folder
 
             self.supported_models = ['protein homolog model',
                                      'protein variant model',
@@ -153,8 +157,8 @@ class CARD():
         """
         Write nucleotides sequences to per family fasta files
         """
-        if not os.path.exists('family_fasta'):
-            os.mkdir('family_fasta')
+        if not os.path.exists(self.output_folder):
+            os.mkdir(self.output_folder)
 
         for key, card_item in self.card.items():
             if card_item['model_type'] in self.supported_models:
@@ -173,32 +177,63 @@ class CARD():
                                 out_fh.write(acc + '\n' + seq + '\n')
 
     def convert_amr_family_to_filename(self, family):
-        fp = os.path.join('family_fasta', family.replace(' ', '_').replace('/', '_'))
+
+        family = family.replace("'", "-").replace('"', '-').replace('(', '_')
+        family = family.replace(')', '_').replace(' ', '_').replace('/', '_')
+        fp = os.path.join(self.output_folder, family + ".faa")
         return fp
 
-    def add_prevalence_to_family(self, prevalence_fasta):
-        for record in SeqIO.parse(prevalence_fasta, "fasta"):
-            try:
-                aro = record.description.split('|')[2].replace('ARO:', '')
-            except:
-                print(record)
-                assert False
-            with open(self.convert_amr_family_to_filename(self.aro_to_gene_family[aro]), 'a') as out_fh:
-                SeqIO.write(record, out_fh, "fasta")
+    def add_prevalence_to_family(self, prevalence_folder):
+        prevalence_fasta = [os.path.join(prevalence_folder, x) for x in \
+                                ['protein_fasta_protein_overexpression_model_variants.fasta',
+                                 'protein_fasta_protein_homolog_model_variants.fasta',
+                                 'protein_fasta_protein_variant_model_variants.fasta']]
+        for fasta in prevalence_fasta:
+            for record in SeqIO.parse(prevalence_fasta, "fasta"):
+                try:
+                    aro = record.description.split('|')[2].replace('ARO:', '')
+                except:
+                    print(record)
+                    assert False
+                with open(self.convert_amr_family_to_filename(self.aro_to_gene_family[aro]), 'a') as out_fh:
+                    SeqIO.write(record, out_fh, "fasta")
+
+def filter_singletons(family_folder):
+    singleton_folder = os.path.join(family_folder, 'singletons')
+    if not os.path.exists(singleton_folder):
+        os.mkdir(singleton_folder)
+
+    non_singleton_folder = os.path.join(family_folder, 'non_singleton_clusters')
+    if not os.path.exists(non_singleton_folder):
+        os.mkdir(non_singleton_folder)
+
+    for family_fasta in glob.glob(os.path.join(family_folder, '*.faa')):
+            basename = os.path.basename(family_fasta)
+            records = list(SeqIO.parse(family_fasta, 'fasta'))
+            if len(records) < 3:
+                print(f"{basename} has < 3 sequences so moving to singleton folder")
+                os.rename(family_fasta, os.path.join(singleton_folder, basename))
+            else:
+                os.rename(family_fasta, os.path.join(non_singleton_folder, basename))
+
+
 
 def run():
     parser = argparse.ArgumentParser(description='Organise CARD sequences by annotated family.')
     parser.add_argument('-c', '--card_json', type=str, required=True,
                     help="Path to CARD canonical CARD.json file")
-    parser.add_argument('-p', '--prevalence_fasta', type=str, required=True,
+    parser.add_argument('-p', '--prevalence_folder', type=str, required=True,
                     help="Path to CARD prevalence folder")
     parser.add_argument('-o', '--output_folder', type=str, required=True,
                     help="Folder to output family sequences")
     args = parser.parse_args()
 
-    card = CARD(args.card_json)
+    card = CARD(args.card_json, args.output_folder)
     card.get_protein_per_family()
-    card.add_prevalence_to_family(args.prevalence_fasta)
+    card.add_prevalence_to_family(args.prevalence_folder)
+
+    filter_singletons(args.output_folder)
+
 
 if __name__ == '__main__':
     run()

@@ -11,7 +11,9 @@ workdir: f"card-phylo_canonical_{config['canonical_version']}_prevalence_{config
 
 rule all:
     input:
-        "mmseqs_complete.txt"
+        "card_protein.fasta",
+        "family_complete.txt"
+        #"mmseqs_complete.txt"
 
 ############################## Download and Parse CARD Databases ##############################
 rule extract_card:
@@ -21,7 +23,7 @@ rule extract_card:
     output:
         f"card/canonical/{config['canonical_version']}/card.json",
         f"card/canonical/{config['canonical_version']}/protein_fasta_protein_homolog_model.fasta",
-        f"card/canonical/{config['canonical_version']}/protein_fasta_protein_knockout_model.fasta",
+        #f"card/canonical/{config['canonical_version']}/protein_fasta_protein_knockout_model.fasta",
         f"card/canonical/{config['canonical_version']}/protein_fasta_protein_overexpression_model.fasta",
         f"card/canonical/{config['canonical_version']}/protein_fasta_protein_variant_model.fasta",
         f"card/prevalence/{config['prevalence_version']}/protein_fasta_protein_homolog_model_variants.fasta.gz",
@@ -69,7 +71,7 @@ rule extract_prevalence:
 rule concatenate_seqs:
     input:
         f"card/canonical/{config['canonical_version']}/protein_fasta_protein_homolog_model.fasta",
-        f"card/canonical/{config['canonical_version']}/protein_fasta_protein_knockout_model.fasta",
+        #f"card/canonical/{config['canonical_version']}/protein_fasta_protein_knockout_model.fasta",
         f"card/canonical/{config['canonical_version']}/protein_fasta_protein_overexpression_model.fasta",
         f"card/canonical/{config['canonical_version']}/protein_fasta_protein_variant_model.fasta",
         f"card/prevalence/{config['prevalence_version']}/protein_fasta_protein_homolog_model_variants.fasta",
@@ -318,39 +320,54 @@ def aggregate_mmseqs_95_phylo(wildcards):
     return expand("mmseqs_95/phylo/{i}.treefile",
     i=glob_wildcards(os.path.join(checkpoint_output, "{i}.faa")).i)
 
-rule mmseqs:
-    input:
-        aggregate_mmseqs_0_phylo,
-        aggregate_mmseqs_70_phylo,
-        aggregate_mmseqs_80_phylo,
-        aggregate_mmseqs_90_phylo,
-        aggregate_mmseqs_95_phylo
-    output:
-        "mmseqs_complete.txt"
-    shell:
-        "touch {output}"
+#rule mmseqs:
+#    input:
+#        aggregate_mmseqs_0_phylo,
+#        aggregate_mmseqs_70_phylo,
+#        aggregate_mmseqs_80_phylo,
+#        aggregate_mmseqs_90_phylo,
+#        aggregate_mmseqs_95_phylo
+#    output:
+#        "mmseqs_complete.txt"
+#    shell:
+#        "touch {output}"
 
 
 
 ###################### Family Grouping ########################################
-
-#rule family:
-#    output
-
-#rule organise_by_family:
-#    conda:
-#        'envs/card-phylo.yml'
-#    input:
-#        card_json = f"card/canonical/{config['canonical_version']}/card.json",
-#        prevalence = f"card/prevalence/{config['prevalence_version']}/protein_fasta_protein_homolog_model_variants.fasta"
-#    output:
-#        "seqs/families/",
-#    message:
-#        "Grouping sequences by annotated family name"
-#    shell:
-#        """
-#        mkdir -p family/seqs/families
-#        python ../scripts/dump_to_gene_family_fasta.py -c {input.card_json} -p {input.prevalence} -o {output} 
-#        """
 #
+checkpoint organise_by_family:
+    conda:
+        'envs/card-phylo.yml'
+    input:
+        card_json = f"card/canonical/{config['canonical_version']}/card.json",
+        prev_hom = f"card/prevalence/{config['prevalence_version']}/protein_fasta_protein_homolog_model_variants.fasta",
+        prev_over = f"card/prevalence/{config['prevalence_version']}/protein_fasta_protein_overexpression_model_variants.fasta",
+        prev_var = f"card/prevalence/{config['prevalence_version']}/protein_fasta_protein_variant_model_variants.fasta"
+    output:
+        cluster_dir = directory("curated_amr_gene_families/seqs/non_singleton_clusters")
+    message:
+        "Grouping sequences by annotated family name"
+    params:
+        prev_prefix = f"card/prevalence/{config['prevalence_version']}",
+        out_prefix = "curated_amr_gene_families/seqs"
+    log:
+        "logs/curated_amr_gene_families/family_splitting.log"
+    shell:
+        """
+        mkdir -p curated_amr_gene_families/seqs/families
+        python ../scripts/dump_to_gene_family_fasta.py -c {input.card_json} -p {params.prev_prefix} -o {params.out_prefix} > {log}
+        """
 
+def aggregate_family_phylo(wildcards):
+    checkpoint_output = checkpoints.organise_by_family.get(**wildcards).output[0]
+    return expand("curated_amr_gene_families/phylo/{i}.treefile",
+    i=glob_wildcards(os.path.join(checkpoint_output, "{i}.faa")).i)
+
+rule family:
+    input:
+        aggregate_family_phylo
+    output:
+        "family_complete.txt"
+    shell:
+        "touch {output}"
