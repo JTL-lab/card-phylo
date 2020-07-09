@@ -1,7 +1,7 @@
 # CARD-phylo
 
-[![Snakemake](https://img.shields.io/badge/snakemake-≥5.0.0-brightgreen.svg)](https://snakemake.bitbucket.io)
-[![Build Status](https://travis-ci.org/snakemake-workflows/card-phylo.svg?branch=master)](https://travis-ci.org/snakemake-workflows/card-phylo)
+[![Snakemake](https://img.shields.io/badge/snakemake-≥5.11.2-brightgreen.svg)](https://snakemake.bitbucket.io)
+[![Build Status](https://travis-ci.org/fmaguire/card-phylo.svg?branch=master)](https://travis-ci.org/fmaguire/card-phylo)
 
 This is a workflow to generate reference phylogenies for all AMR sequences in CARD canonical and prevalence.
 

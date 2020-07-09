@@ -23,5 +23,4 @@ install:
 script:
   - source activate snakemake
   # run the workflow
-  # put a test case into the subfolder .test (e.g., use https://github.com/snakemake-workflows/ngs-test-data as a submodule)
-  - snakemake --use-conda --directory .test
+  - snakemake --use-conda --cores 1 --dryrun
