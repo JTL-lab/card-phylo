@@ -3,5 +3,5 @@
 # one row per sample. It can be parsed easily via pandas.
 
 threads_per_job: 10
-canonical_version: 3.0.8
-prevalence_version: 3.0.6
+canonical_version: 3.0.9
+prevalence_version: 3.0.7
