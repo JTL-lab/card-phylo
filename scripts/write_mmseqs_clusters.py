@@ -15,29 +15,31 @@ def run():
     if not os.path.exists(args.output_folder):
         os.mkdir(args.output_folder)
 
-    cluster_seqs = []
-    out_fh = None
-    cluster = 0
-    num_seqs = 0
-
-    singleton_record = open(os.path.join(args.output_folder, 'phylo_singletons.txt'), 'w')
+    # go inefficient to avoid bugs
+    all_clusters = []
+    cluster = []
     for record in SeqIO.parse(args.cluster_fasta, 'fasta'):
-        if len(record.seq) == 0:
-            if out_fh:
-                if num_seqs >= 3:
-                    SeqIO.write(cluster_seqs, out_fh, 'fasta')
-                    cluster += 1
-                else:
-                    SeqIO.write(cluster_seqs, singleton_record, "fasta")
-                    print(f"MMSEQS2 phylo singleton (<3 seqs): {cluster_seqs[0].id}")
-                cluster_seqs = []
-                num_seqs = 0
-                out_fh.close()
-            out_fh = open(os.path.join(args.output_folder, str(cluster) + ".faa"), 'w')
+        if len(record.seq) == 0 and len(cluster) > 0:
+            all_clusters.append(cluster)
+            cluster = []
         else:
-            cluster_seqs.append(record)
-            num_seqs += 1
-    singleton_record.close()
+            cluster.append(record)
+
+    clusterid = 0
+    singleton_fp = os.path.join(args.output_folder, 'phylo_singletons.txt')
+    singleton_fh = open(singleton_fp, 'w')
+    for cluster in all_clusters:
+        if len(cluster) >= 3:
+            output_fp = os.path.join(args.output_folder,
+                                     str(clusterid) + ".faa")
+            with open(output_fp, 'w') as out_fh:
+                SeqIO.write(cluster, out_fh, 'fasta')
+            clusterid += 1
+        else:
+            SeqIO.write(cluster, singleton_fh, "fasta")
+            print(f"MMSEQS2 phylo singleton (<3 seqs): {[seq.id for seq in cluster]}")
+    singleton_fh.close()
+
 
 if __name__ == '__main__':
     run()
