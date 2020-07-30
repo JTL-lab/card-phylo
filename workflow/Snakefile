@@ -326,10 +326,10 @@ def aggregate_mmseqs_95_phylo(wildcards):
 rule mmseqs:
     input:
         aggregate_mmseqs_0_phylo,
-        aggregate_mmseqs_70_phylo,
-        aggregate_mmseqs_80_phylo,
+        #aggregate_mmseqs_70_phylo,
+        #aggregate_mmseqs_80_phylo,
         aggregate_mmseqs_90_phylo,
-        aggregate_mmseqs_95_phylo
+        #aggregate_mmseqs_95_phylo
     output:
         "mmseqs_complete.txt"
     shell:
