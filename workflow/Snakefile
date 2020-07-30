@@ -2,84 +2,53 @@
 # After configuring, running snakemake -n in a clone of this repository should successfully execute a dry-run of the workflow.
 configfile: "config/config.yaml"
 report: "report/workflow.rst"
-workdir: f"card-phylo_canonical_{config['canonical_version']}_prevalence_{config['prevalence_version']}"
+workdir: f"card-phylo_canonical_{config['canonical_version']}"
 
 # will only be used if singularity is installed and --use-singularity flag is provided
 container: "docker://continuumio/miniconda3:4.8.2"
 
-#rule all:
-#    input:
-#        "done"
-#report/report.rst"
-
 rule all:
     input:
-        "card_protein.fasta",
-        "family_complete.txt",
         "mmseqs_complete.txt"
 
 ############################## Download and Parse CARD Databases ##############################
 rule extract_card:
     input:
         canonical = f"card/canonical/{config['canonical_version']}/broadstreet-v{config['canonical_version']}.tar.bz2",
-        prevalence = f"card/prevalence/{config['prevalence_version']}/prevalence-v{config['prevalence_version']}.tar.bz2"
     output:
         f"card/canonical/{config['canonical_version']}/card.json",
         f"card/canonical/{config['canonical_version']}/protein_fasta_protein_homolog_model.fasta",
-        #f"card/canonical/{config['canonical_version']}/protein_fasta_protein_knockout_model.fasta",
+        f"card/canonical/{config['canonical_version']}/protein_fasta_protein_knockout_model.fasta",
         f"card/canonical/{config['canonical_version']}/protein_fasta_protein_overexpression_model.fasta",
-        f"card/canonical/{config['canonical_version']}/protein_fasta_protein_variant_model.fasta",
-        f"card/prevalence/{config['prevalence_version']}/protein_fasta_protein_homolog_model_variants.fasta.gz",
-        f"card/prevalence/{config['prevalence_version']}/protein_fasta_protein_overexpression_model_variants.fasta.gz",
-        f"card/prevalence/{config['prevalence_version']}/protein_fasta_protein_variant_model_variants.fasta.gz"
+        f"card/canonical/{config['canonical_version']}/protein_fasta_protein_variant_model.fasta"
     params:
         canonical_version = config["canonical_version"],
-        prevalence_version = config["prevalence_version"]
     log:
         "logs/card_extract.log"
     shell:
         """
         tar -C card/canonical/{params.canonical_version} -xvf {input.canonical} 2>&1 >> {log}
-        tar -C card/prevalence/{params.prevalence_version} -xvf {input.prevalence} 2>&1 >> {log}
         """
 
 rule download_card:
     output:
         f"card/canonical/{config['canonical_version']}/broadstreet-v{config['canonical_version']}.tar.bz2",
-        f"card/prevalence/{config['prevalence_version']}/prevalence-v{config['prevalence_version']}.tar.bz2",
     params:
         canonical_version = config["canonical_version"],
-        prevalence_version = config["prevalence_version"]
     log:
         "logs/card_download.log"
     shell:
         """
         wget -P card/canonical/{params.canonical_version} https://card.mcmaster.ca/download/0/broadstreet-v{params.canonical_version}.tar.bz2 2>&1 >> {log}
-        wget -P card/prevalence/{params.prevalence_version} https://card.mcmaster.ca/download/6/prevalence-v{params.prevalence_version}.tar.bz2 2>&1 >> {log}
         """
-
-rule extract_prevalence:
-    input:
-        f"card/prevalence/{config['prevalence_version']}/protein_fasta_protein_homolog_model_variants.fasta.gz",
-        f"card/prevalence/{config['prevalence_version']}/protein_fasta_protein_overexpression_model_variants.fasta.gz",
-        f"card/prevalence/{config['prevalence_version']}/protein_fasta_protein_variant_model_variants.fasta.gz"
-    output:
-        f"card/prevalence/{config['prevalence_version']}/protein_fasta_protein_homolog_model_variants.fasta",
-        f"card/prevalence/{config['prevalence_version']}/protein_fasta_protein_overexpression_model_variants.fasta",
-        f"card/prevalence/{config['prevalence_version']}/protein_fasta_protein_variant_model_variants.fasta"
-    shell:
-        "gunzip {input}"
 
 # only include canonical for testing purposes
 rule concatenate_seqs:
     input:
         f"card/canonical/{config['canonical_version']}/protein_fasta_protein_homolog_model.fasta",
-        #f"card/canonical/{config['canonical_version']}/protein_fasta_protein_knockout_model.fasta",
+        f"card/canonical/{config['canonical_version']}/protein_fasta_protein_knockout_model.fasta",
         f"card/canonical/{config['canonical_version']}/protein_fasta_protein_overexpression_model.fasta",
         f"card/canonical/{config['canonical_version']}/protein_fasta_protein_variant_model.fasta",
-        f"card/prevalence/{config['prevalence_version']}/protein_fasta_protein_homolog_model_variants.fasta",
-        f"card/prevalence/{config['prevalence_version']}/protein_fasta_protein_overexpression_model_variants.fasta",
-        f"card/prevalence/{config['prevalence_version']}/protein_fasta_protein_variant_model_variants.fasta"
     output: 
         "card_protein.fasta"
     log:
@@ -101,7 +70,7 @@ rule align:
     log:
         "logs/{clustertype}/mafft_{clusterid}.log"
     conda: 
-        "envs/card-phylo.yml"
+        "envs/phylo.yml"
     shell:
         """
         mafft --auto {input} > {output} 2> {log}
@@ -115,7 +84,7 @@ rule trim:
     log:
         "logs/{clustertype}/trimal_{clusterid}.log"
     conda: 
-        "envs/card-phylo.yml"
+        "envs/phylo.yml"
     shell:
         """
         trimal -keepheader -in {input} -out {output} -automated1 2>&1 > {log}
@@ -129,7 +98,7 @@ rule tree:
     log:
         "logs/{clustertype}/phylo_{clusterid}.log"
     conda: 
-        "envs/card-phylo.yml"
+        "envs/phylo.yml"
     params:
         prefix = "{clustertype}/phylo/{clusterid}"
     shell:
@@ -138,237 +107,47 @@ rule tree:
         """
 
 ######################### MMSeqs Clustering ####################################
-
-# 0%
-rule cluster_by_mmseq_0:
+rule cluster_by_mmseq:
     input:
         "card_protein.fasta"
     output:
-        "mmseqs_0/seqs/amr_clusters_all_seqs.fasta"
+        "mmseqs/seqs/amr_clusters_all_seqs.fasta"
     params:
         threads = config['threads_per_job'],
-        prefix = "mmseqs_0/seqs/amr_clusters",
-        tmp = "mmseqs_0/seqs/mmseqs_clusters/tmp"
+        min_seq_id = config['min_seq_id'],
+        prefix = "mmseqs/seqs/amr_clusters",
+        tmp = "mmseqs/seqs/mmseqs_clusters/tmp"
     conda: 
-        "envs/card-phylo.yml"
+        "envs/clustering.yml"
     log:
-        "logs/mmseqs_0/mmseq_cluster.log"
+        "logs/mmseqs/mmseq_cluster.log"
     shell:  
         """
         mkdir -p {params.tmp}
-        mmseqs easy-cluster --remove-tmp-files 1 --threads {params.threads} {input} {params.prefix} {params.tmp} 2>&1 > {log}
+        mmseqs easy-cluster --min-seq-id {params.min_seq_id} --remove-tmp-files 1 --threads {params.threads} {input} {params.prefix} {params.tmp} 2>&1 > {log}
         """
 
-# 70%
-rule cluster_by_mmseq_70:
+checkpoint write_mmseqs_clusters:
     input:
-        "card_protein.fasta"
+        "mmseqs/seqs/amr_clusters_all_seqs.fasta"
     output:
-        "mmseqs_70/seqs/amr_clusters_all_seqs.fasta"
-    params:
-        threads = config['threads_per_job'],
-        prefix = "mmseqs_70/seqs/amr_clusters",
-        tmp = "mmseqs_70/seqs/mmseqs_clusters/tmp"
-    conda: 
-        "envs/card-phylo.yml"
+        cluster_dir = directory("mmseqs/seqs/non_singleton_clusters")
     log:
-        "logs/mmseqs_70/mmseq_cluster.log"
-    shell:  
-        """
-        mkdir -p {params.tmp}
-        mmseqs easy-cluster --min-seq-id 0.70 --remove-tmp-files 1 --threads {params.threads} {input} {params.prefix} {params.tmp} 2>&1 > {log}
-        """
-# 80%
-rule cluster_by_mmseq_80:
-    input:
-        "card_protein.fasta"
-    output:
-        "mmseqs_80/seqs/amr_clusters_all_seqs.fasta"
-    params:
-        threads = config['threads_per_job'],
-        prefix = "mmseqs_80/seqs/amr_clusters",
-        tmp = "mmseqs_80/seqs/mmseqs_clusters/tmp"
+        "logs/mmseqs/mmseq_cluster_splitting.log"
     conda: 
-        "envs/card-phylo.yml"
-    log:
-        "logs/mmseqs_80/mmseq_cluster.log"
-    shell:  
-        """
-        mkdir -p {params.tmp}
-        mmseqs easy-cluster --min-seq-id 0.80 --remove-tmp-files 1 --threads {params.threads} {input} {params.prefix} {params.tmp} 2>&1 > {log}
-        """
-
-# 90%
-rule cluster_by_mmseq_90:
-    input:
-        "card_protein.fasta"
-    output:
-        "mmseqs_90/seqs/amr_clusters_all_seqs.fasta"
-    params:
-        threads = config['threads_per_job'],
-        prefix = "mmseqs_90/seqs/amr_clusters",
-        tmp = "mmseqs_90/seqs/mmseqs_clusters/tmp"
-    conda: 
-        "envs/card-phylo.yml"
-    log:
-        "logs/mmseqs_90/mmseq_cluster.log"
-    shell:  
-        """
-        mkdir -p {params.tmp}
-        mmseqs easy-cluster --min-seq-id 0.90 --remove-tmp-files 1 --threads {params.threads} {input} {params.prefix} {params.tmp} 2>&1 > {log}
-        """
-
-# 95%
-rule cluster_by_mmseq_95:
-    input:
-        "card_protein.fasta"
-    output:
-        "mmseqs_95/seqs/amr_clusters_all_seqs.fasta"
-    params:
-        threads = config['threads_per_job'],
-        prefix = "mmseqs_95/seqs/amr_clusters",
-        tmp = "mmseqs_95/seqs/mmseqs_clusters/tmp"
-    conda: 
-        "envs/card-phylo.yml"
-    log:
-        "logs/mmseqs_95/mmseq_cluster.log"
-    shell:  
-        """
-        mkdir -p {params.tmp}
-        mmseqs easy-cluster --min-seq-id 0.95 --remove-tmp-files 1 --threads {params.threads} {input} {params.prefix} {params.tmp} 2>&1 > {log}
-        """
-
-checkpoint write_mmseqs_0_clusters:
-    input:
-        "mmseqs_0/seqs/amr_clusters_all_seqs.fasta"
-    output:
-        cluster_dir = directory("mmseqs_0/seqs/non_singleton_clusters")
-    log:
-        "logs/mmseqs_0/mmseq_cluster_splitting.log"
-    conda: 
-        "envs/card-phylo.yml"
+        "envs/clustering.yml"
     shell:
         "python ../workflow/scripts/write_mmseqs_clusters.py -c {input} -o {output.cluster_dir} 2>&1 > {log}"
 
-def aggregate_mmseqs_0_phylo(wildcards):
-    checkpoint_output = checkpoints.write_mmseqs_0_clusters.get(**wildcards).output[0]
-    return expand("mmseqs_0/phylo/{i}.treefile",
-    i=glob_wildcards(os.path.join(checkpoint_output, "{i}.faa")).i)
-
-checkpoint write_mmseqs_70_clusters:
-    input:
-        "mmseqs_70/seqs/amr_clusters_all_seqs.fasta"
-    output:
-        cluster_dir = directory("mmseqs_70/seqs/non_singleton_clusters")
-    log:
-        "logs/mmseqs_70/mmseq_cluster_splitting.log"
-    conda: 
-        "envs/card-phylo.yml"
-    shell:
-        "python ../workflow/scripts/write_mmseqs_clusters.py -c {input} -o {output.cluster_dir} 2>&1 > {log}"
-
-def aggregate_mmseqs_70_phylo(wildcards):
-    checkpoint_output = checkpoints.write_mmseqs_70_clusters.get(**wildcards).output[0]
-    return expand("mmseqs_70/phylo/{i}.treefile",
-    i=glob_wildcards(os.path.join(checkpoint_output, "{i}.faa")).i)
-
-checkpoint write_mmseqs_80_clusters:
-    input:
-        "mmseqs_80/seqs/amr_clusters_all_seqs.fasta"
-    output:
-        cluster_dir = directory("mmseqs_80/seqs/non_singleton_clusters")
-    log:
-        "logs/mmseqs_80/mmseq_cluster_splitting.log"
-    conda: 
-        "envs/card-phylo.yml"
-    shell:
-        "python ../workflow/scripts/write_mmseqs_clusters.py -c {input} -o {output.cluster_dir} 2>&1 > {log}"
-
-def aggregate_mmseqs_80_phylo(wildcards):
-    checkpoint_output = checkpoints.write_mmseqs_80_clusters.get(**wildcards).output[0]
-    return expand("mmseqs_80/phylo/{i}.treefile",
-    i=glob_wildcards(os.path.join(checkpoint_output, "{i}.faa")).i)
-
-checkpoint write_mmseqs_90_clusters:
-    input:
-        "mmseqs_90/seqs/amr_clusters_all_seqs.fasta"
-    output:
-        cluster_dir = directory("mmseqs_90/seqs/non_singleton_clusters")
-    log:
-        "logs/mmseqs_90/mmseq_cluster_splitting.log"
-    conda: 
-        "envs/card-phylo.yml"
-    shell:
-        "python ../workflow/scripts/write_mmseqs_clusters.py -c {input} -o {output.cluster_dir} 2>&1 > {log}"
-
-def aggregate_mmseqs_90_phylo(wildcards):
-    checkpoint_output = checkpoints.write_mmseqs_90_clusters.get(**wildcards).output[0]
-    return expand("mmseqs_90/phylo/{i}.treefile",
-    i=glob_wildcards(os.path.join(checkpoint_output, "{i}.faa")).i)
-
-checkpoint write_mmseqs_95_clusters:
-    input:
-        "mmseqs_95/seqs/amr_clusters_all_seqs.fasta"
-    output:
-        cluster_dir = directory("mmseqs_95/seqs/non_singleton_clusters")
-    log:
-        "logs/mmseqs_95/mmseq_cluster_splitting.log"
-    conda: 
-        "envs/card-phylo.yml"
-    shell:
-        "python ../workflow/scripts/write_mmseqs_clusters.py -c {input} -o {output.cluster_dir} 2>&1 > {log}"
-
-def aggregate_mmseqs_95_phylo(wildcards):
-    checkpoint_output = checkpoints.write_mmseqs_95_clusters.get(**wildcards).output[0]
-    return expand("mmseqs_95/phylo/{i}.treefile",
+def aggregate_mmseqs_phylo(wildcards):
+    checkpoint_output = checkpoints.write_mmseqs_clusters.get(**wildcards).output[0]
+    return expand("mmseqs/phylo/{i}.treefile",
     i=glob_wildcards(os.path.join(checkpoint_output, "{i}.faa")).i)
 
 rule mmseqs:
     input:
-        aggregate_mmseqs_0_phylo,
-        #aggregate_mmseqs_70_phylo,
-        #aggregate_mmseqs_80_phylo,
-        aggregate_mmseqs_90_phylo,
-        #aggregate_mmseqs_95_phylo
+        aggregate_mmseqs_phylo
     output:
         "mmseqs_complete.txt"
-    shell:
-        "touch {output}"
-
-
-###################### Family Grouping ########################################
-#
-checkpoint organise_by_family:
-    conda:
-        'envs/card-phylo.yml'
-    input:
-        card_json = f"card/canonical/{config['canonical_version']}/card.json",
-        prev_hom = f"card/prevalence/{config['prevalence_version']}/protein_fasta_protein_homolog_model_variants.fasta",
-        prev_over = f"card/prevalence/{config['prevalence_version']}/protein_fasta_protein_overexpression_model_variants.fasta",
-        prev_var = f"card/prevalence/{config['prevalence_version']}/protein_fasta_protein_variant_model_variants.fasta"
-    output:
-        cluster_dir = directory("curated_amr_gene_families/seqs/non_singleton_clusters")
-    message:
-        "Grouping sequences by annotated family name"
-    params:
-        prev_prefix = f"card/prevalence/{config['prevalence_version']}",
-        out_prefix = "curated_amr_gene_families/seqs"
-    log:
-        "logs/curated_amr_gene_families/family_splitting.log"
-    shell:
-        """
-        python ../workflow/scripts/dump_to_gene_family_fasta.py -c {input.card_json} -p {params.prev_prefix} -o {params.out_prefix} > {log}
-        """
-
-def aggregate_family_phylo(wildcards):
-    checkpoint_output = checkpoints.organise_by_family.get(**wildcards).output[0]
-    return expand("curated_amr_gene_families/phylo/{i}.treefile",
-    i=glob_wildcards(os.path.join(checkpoint_output, "{i}.faa")).i)
-
-rule family:
-    input:
-        aggregate_family_phylo
-    output:
-        "family_complete.txt"
     shell:
         "touch {output}"

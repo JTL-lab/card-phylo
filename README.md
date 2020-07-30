@@ -3,7 +3,7 @@
 [![Snakemake](https://img.shields.io/badge/snakemake-≥5.11.2-brightgreen.svg)](https://snakemake.bitbucket.io)
 [![Build Status](https://travis-ci.org/fmaguire/card-phylo.svg?branch=master)](https://travis-ci.org/fmaguire/card-phylo)
 
-This is a workflow to generate reference phylogenies for all AMR sequences in CARD canonical and prevalence.
+This is a simplified version of the workflow to generate reference phylogenies for all AMR sequences in CARD canonical 
 
 Note the LICENSE file only refers to the workflow in this repository for licensing related to using CARD please visit the [website](https://card.mcmaster.ca/about).
 
@@ -56,34 +56,17 @@ or
 
 #### Output 
 
-    card-phylo_canonical_3.0.9_prevalence_3.0.7/
+    card-phylo_canonical_3.0.9/
     ├── card
-    │   ├── canonical
-    │   │   └── 3.0.9
-    │   │       ├── card.json
-    │   │       ├── protein_fasta_protein_homolog_model.fasta
-    │   │       ├── protein_fasta_protein_knockout_model.fasta
-    │   │       ├── protein_fasta_protein_overexpression_model.fasta
-    │   │       └── protein_fasta_protein_variant_model.fasta
-    │   └── prevalence
-    │       └── 3.0.7
-    │           ├── protein_fasta_protein_homolog_model_variants.fasta
-    │           ├── protein_fasta_protein_overexpression_model_variants.fasta
-    │           └── protein_fasta_protein_variant_model_variants.fasta
+    │   └──── canonical
+    │       └── 3.0.9
+    │           ├── card.json
+    │           ├── protein_fasta_protein_homolog_model.fasta
+    │           ├── protein_fasta_protein_knockout_model.fasta
+    │           ├── protein_fasta_protein_overexpression_model.fasta
+    │           └── protein_fasta_protein_variant_model.fasta
     ├── card_protein.fasta
-    ├── curated_amr_gene_families
-    │   ├── seqs
-    │   │   ├── non_singleton_clusters
-    │   │   │   └── TEM_beta-lactamase.faa
-    │   │   └── singletons
-    │   │       └── Zoliflodacin_resistant_gyrB.faa
-    │   ├── align
-    │   │   └── TEM_beta-lactamase.afa
-    │   ├── trim 
-    │   │   └── TEM_beta-lactamase.afa
-    │   └── phylo
-    │       └── TEM_beta-lactamase.treefile
-    ├── mmseqs_0            # final digit indicates clustering %id
+    ├── mmseqs
     │   ├── seqs
     │   │   └── non_singleton_clusters
     |   |       ├── phylo_singletons.txt
@@ -94,10 +77,6 @@ or
     │   │   └── 1.afa
     │   └── phylo
     │       └── 1.treefile
-    ├── mmseqs_70
-    ├── mmseqs_80
-    ├── mmseqs_90
-    ├── mmseqs_95
     └── logs
 
 ### Advanced
@@ -127,12 +106,4 @@ If you not only want to fix the software stack but also the underlying OS, use
 
 in combination with any of the modes above.
 See the [Snakemake documentation](https://snakemake.readthedocs.io/en/stable/executable.html) for further details.
-
-#### Report Generation
-After successful execution, you can create a self-contained interactive HTML report with all results via:
-
-    snakemake --report report.html
-
-This report can, e.g., be forwarded to your collaborators.
-
 

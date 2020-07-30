@@ -4,4 +4,4 @@
 
 threads_per_job: 10
 canonical_version: 3.0.9
-prevalence_version: 3.0.7
+min_seq_id: 0.90
